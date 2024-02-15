@@ -23,7 +23,7 @@ async def submit_code(request: Request, problem_id: int, user_name: str):
         with open(file_name, 'w') as file:
             file.write(data.get("code"))
 
-        return {"detail" : "success!!"}
+        return {"detail" : "success!!", "answerid" : problem_id}
 
     except HTTPException as he:
         raise he
