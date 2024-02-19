@@ -10,7 +10,8 @@ def get_prob_data(problem_id):
         problem_id (_int_): 문제 아이디
 
     Returns:
-        _list_: [context, sample, input, output] [본문내용, 샘플 수, 입력내용, 출력내용]
+        _list_: [context, sample, input, output] 
+        리스트 : [본문내용, 샘플 수, 입력내용, 출력내용]
     """
     file_path = f"./problems/prob{problem_id}.txt"
     if not os.path.exists(file_path):
@@ -75,48 +76,56 @@ def compile_func(cdata, inputs):
 
 
 def compile_main(cdata, inputs, check):
-    
-    #try:
-        if check == 1: # main + scanf
-            print("insert: ", inputs)
-            PIPE = subprocess.PIPE
-            p = subprocess.Popen(cdata, shell=True, stdin=PIPE, stdout=PIPE)
-            p
+    """### compiling main code 
+        * WARN : NO_TIMEOUT 
+
+    Args:
+        cdata (_str_): c file path
+        inputs (_str_): input data
+        check (_str_): check main + scanf & main
+
+    Returns:
+        _str_: OUTPUT | HARD ERROR
+    """
+    try:
+        if check == 1:              # main + scanf
+
+            p = subprocess.Popen(cdata, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
             p.stdin.write(inputs.encode("utf-8"))
             p.stdin.flush()
             res = p.stdout.read().decode("utf-8")
             p.terminate()
             
-            if p.returncode != 0: # return ERROR
+            if p.returncode != 0:   # return ERROR
                 return p.stderr
 
-            return res # return result
+            return res              # return result
+        
         else: # main
             p = subprocess.run([cdata], capture_output=True, text=True,  timeout=2)
             return p.stdout.strip() # return result
         
-    #except Exception as e:
-    #    return "HARD ERROR :" + str(e)
+    except Exception as e:          # return ERROR
+        return "HARD ERROR :" + str(e)
 
 
-#/home/kyopark/PES-TESTER/answerData/1.c
+def code_tester(c_file_path, prob_id):
+    """main compiler
+    
+    Args:
+        c_file_path (_type_): _description_
+        prob_id (_type_): _description_
 
-
-
-def code_tester():
-    c_file_path = "./answerData/1.c"
-    probnum = 1
-    prob = get_prob_data(probnum)
+    Returns:
+        _type_: _description_
+    """
+    prob = get_prob_data(prob_id)
     count = len(prob[3])
-
     lib_path = f"./{uuid.uuid4().hex}.so"
-
-
-
     check = check_main_function(c_file_path)
 
     if check < 3: # compile main
-        print("C 파일에 main 함수가 존재합니다.")
+        print("COMPILE MAIN")
         result = subprocess.run(['gcc', c_file_path, '-o', lib_path], stdout=subprocess.PIPE)
         for idx, (input_data, output_data) in enumerate(zip(prob[2], prob[3])):
             
@@ -127,18 +136,19 @@ def code_tester():
         return 100
 
     else: # compile function
-        print("C 파일에 main 함수가 존재하지 않습니다.")
-        result = subprocess.run(['gcc', '-o', lib_path, "-I", "problems", c_file_path, f"./problems/main{probnum}.c", "./problems/pes.h"], stdout=subprocess.PIPE)
+        print("COMPILE FUNC")
+        result = subprocess.run(['gcc', '-o', lib_path, "-I", "problems", c_file_path, f"./problems/main{prob_id}.c", "./problems/pes.h"], stdout=subprocess.PIPE)
         for idx, (input_data, output_data) in enumerate(zip(prob[2], prob[3])):
             
             actual_output = compile_func(lib_path, input_data)
-            print("<result>\n", input_data, output_data, "시작!", actual_output, "끝!")
+            print("<result>\n", input_data, output_data, actual_output)
             if output_data.rstrip() != actual_output:
                 return int(idx / count * 100)
 
         return 100
     
-print(code_tester())
+if __name__ == "__main__":
+    print(code_tester("./answerData/4.c", 4))
         
 
 
