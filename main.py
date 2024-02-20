@@ -7,6 +7,7 @@ import uuid
 import random
 from fastapi.middleware.cors import CORSMiddleware
 from schema import Session, AnswerTable, QuestionTable
+from tester import *
 
 app = FastAPI()
 
@@ -20,76 +21,14 @@ app.add_middleware(
 )
 
 
-def open_prob(problem_id):
-    file_path = f"./problems/prob{problem_id}.json"
-    if not os.path.exists(file_path):
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="파일을 찾을 수 없습니다.")
-    with open(f"./problems/prob{problem_id}.json", 'r', encoding='UTF8') as file:
-        return json.load(file)
-
-
-def compile_c_code(file_name, jdata):
-    try:
-        # 컴파일 명령어 실행
-        lib_path = f"{uuid.uuid4().hex}.so"
-        result = subprocess.run(['gcc', '-shared', '-o', lib_path, file_name], capture_output=True, text=True)
-        
-        # 컴파일 에러 시 원인 return
-        if result.returncode != 0:
-            return (result.stderr.strip())
-        lib = ctypes.CDLL(f"./{lib_path}")
-        total = len(jdata["inputs"])
-        for idx, inp in enumerate(jdata["inputs"]):
-            if jdata["outputs"][idx] != lib.pes(*inp):
-                del lib
-                os.remove(lib_path)
-                return int(idx / total * 100)
-        del lib
-        os.remove(lib_path)
-        return 1
-    
-    except Exception as e:
-        return "HARD ERROR :" + {e}
-    
-
-
 # 코드 제출 엔드포인트
 @app.post("/api2/submit/{problem_id}/{member_name}")
 async def submit_code(request: Request, problem_id: int, member_name: str):
 
     file_name = f"./answerData/{member_name}_{problem_id}.c"
     try:
-        jdata = open_prob(problem_id)
-        
-        data = await request.json()
-        with open(file_name, 'w') as file:
-            file.write(data.get("code"))
-        result = compile_c_code(file_name, jdata)
-        
-        if result == 1:
-            try:
-                session = Session()
-                check = session.query(AnswerTable).filter_by(problem_id=problem_id).first()
-                if not check:
-                    questions = session.query(QuestionTable).filter_by(problem_id=problem_id).all()
-                    choices = random.sample(questions, 2)
-                    addanswer = AnswerTable(member_email=member_name, problem_id=problem_id, 
-                                                question_fst=choices[0].question_id, question_sec=choices[1].question_id, 
-                                                final_score=10) # 임시로 10점
-                    session.add(addanswer)
-                    session.commit()
-                        
-                answerid = session.query(AnswerTable).filter_by(problem_id=problem_id).first().answer_id
-                return {"answerid" : answerid}
-            except:
-                session.rollback()
-                raise
-            finally:
-                session.close()
-                
-        else:
-            return {"detail" : result}
-
+        return {"detail" : code_tester(file_name, problem_id)}
+    
     except HTTPException as he:
         raise he
 
@@ -108,15 +47,15 @@ async def submit_code(request: Request, problem_id: int, member_name: str):
 
 
 
-# 메인 페이지
+# 문제 페이지
 @app.get("/api2/problem/{problem_id}")
 async def read_main(request: Request, problem_id: int):
     try:
-        jdata = open_prob(problem_id)
-
+        prob_data = get_prob_data(problem_id)
+        sample = prob_data[1]
         return {"problem_id": problem_id, 
-        "title" : jdata["title"], "context" : jdata["context"],
-        "sample_inputs" : jdata["sampleInputs"], "sample_outputs" : jdata["sampleOutputs"]}
+        "title" : "temp", "context" : prob_data[0],
+        "sample_inputs" : prob_data[2][:sample], "sample_outputs" : prob_data[3][:sample]}
 
     except HTTPException as he:
         raise he
