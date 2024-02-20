@@ -1,0 +1,14 @@
+프론트 테스트용 입니다!
+다음을 복붙해주세요!
+
+#include <stdio.h>
+
+int main() {
+    printf("0");
+}
+sample
+1
+inputs
+0
+outputs
+0
