@@ -1,13 +1,15 @@
-from fastapi import FastAPI, HTTPException, Response, status, Request
-import subprocess
-import json
-import ctypes
-import os
-import uuid
-import random
+from fastapi import FastAPI, HTTPException, Response, status, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from schema import Session, AnswerTable, QuestionTable
 from tester import *
+import os
+import jwt
+from jwt.exceptions import ExpiredSignatureError, DecodeError
+import base64
+
+JWT_SECRET = "PESprojectisgreatprojectanditsfunandinterestingproject"#os.environ.get('JWT_SECRET')
+ALGORITHM = os.environ.get('ALGORITHM')
 
 app = FastAPI()
 
@@ -20,6 +22,26 @@ app.add_middleware(
     allow_headers=["*"],  # 모든 HTTP 헤더를 허용합니다.
 )
 
+
+def decode_token(token: str): # ERROR
+    #try:
+        token = token.replace("Bearer ", "")
+        print(token, base64.b64encode(JWT_SECRET.encode()), ALGORITHM)
+
+        decoded_token = jwt.decode(token, base64.b64encode(JWT_SECRET.encode()), algorithms=[ALGORITHM])
+        print(decoded_token)
+        return decoded_token
+    #except jwt.ExpiredSignatureError:
+    #    raise HTTPException(status_code=401, detail="토큰이 만료되었습니다.")
+    #except jwt.DecodeError:
+    #    raise HTTPException(status_code=401, detail="유효하지 않은 토큰입니다.")
+
+
+@app.get("/info")
+async def get_info(credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer())):
+    token = credentials.credentials
+    decoded_token = decode_token(token)
+    return decoded_token
 
 # 코드 제출 엔드포인트
 @app.post("/api2/submit/{problem_id}/{member_name}")
