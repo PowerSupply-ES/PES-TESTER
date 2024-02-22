@@ -15,7 +15,7 @@ def get_prob_data(problem_id):
     """
     file_path = f"./problems/prob{problem_id}.txt"
     if not os.path.exists(file_path):
-        return "NONE"
+        raise FileNotFoundError
     with open(file_path, 'r') as file:
         lines = file.readlines()
     
@@ -120,35 +120,37 @@ def code_tester(c_file_path, prob_id):
         _type_: _description_
     """
     prob = get_prob_data(prob_id)
+    
+    #print(prob[0])
     count = len(prob[3])
     lib_path = f"./{uuid.uuid4().hex}.so"
     check = check_main_function(c_file_path)
 
     if check < 3: # compile main
-        print("COMPILE MAIN")
-        result = subprocess.run(['gcc', c_file_path, '-o', lib_path], stdout=subprocess.PIPE)
+        #print("COMPILE MAIN")
+        subprocess.run(['gcc', c_file_path, '-o', lib_path], stdout=subprocess.PIPE, timeout=2)
         for idx, (input_data, output_data) in enumerate(zip(prob[2], prob[3])):
             
             actual_output = compile_main(lib_path, input_data, check)
-            print("<result>\n", input_data, output_data, actual_output,)
+            #print("<result>\n", input_data, output_data, actual_output,)
             if output_data.rstrip() != actual_output:
                 return int(idx / count * 100)
         return 100
 
     else: # compile function
-        print("COMPILE FUNC")
-        result = subprocess.run(['gcc', '-o', lib_path, "-I", "problems", c_file_path, f"./problems/main{prob_id}.c", "./problems/pes.h"], stdout=subprocess.PIPE)
+        #print("COMPILE FUNC")
+        subprocess.run(['gcc', '-o', lib_path, "-I", "problems", c_file_path, f"./problems/main{prob_id}.c", "./problems/pes.h"], stdout=subprocess.PIPE, timeout=2)
         for idx, (input_data, output_data) in enumerate(zip(prob[2], prob[3])):
             
             actual_output = compile_func(lib_path, input_data)
-            print("<result>\n", input_data, output_data, actual_output)
+            #print("<result>\n", input_data, output_data, actual_output)
             if output_data.rstrip() != actual_output:
                 return int(idx / count * 100)
 
         return 100
     
 if __name__ == "__main__":
-    print(code_tester("./answerData/4.c", 4))
+    print(code_tester("./answerData/3.c", 3))
         
 
 
