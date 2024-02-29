@@ -4,6 +4,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from schema import Session, AnswerTable, QuestionTable, ProblemTable
 from tester import *
 import os
+import random
 import jwt
 from fastapi.responses import JSONResponse
 import base64
@@ -68,14 +69,30 @@ async def submit_code(request: Request, problem_id: int, userinfo: dict = Depend
     try:
         res = code_tester(file_name, problem_id)
         if res == 100:
-            return JSONResponse(content={"detail" : res}, status_code=status.HTTP_201_CREATED)
+            session = Session()
+            check = session.query(AnswerTable).filter_by(problem_id=problem_id, member_email=user).first()
+            if not check:
+                questions = session.query(QuestionTable).filter_by(problem_id=problem_id).all()
+                choices = random.sample(questions, 2)
+                addanswer = AnswerTable(member_email=user, problem_id=problem_id, 
+                                            question_fst=choices[0].question_id, question_sec=choices[1].question_id, 
+                                            final_score=10) # 임시로 10점
+                session.add(addanswer)
+                session.commit()
+            answerid = session.query(AnswerTable).filter_by(problem_id=problem_id).first().answer_id
+            
+            return JSONResponse(content={"answerid": answerid, "detail" : res}, status_code=status.HTTP_201_CREATED)
         else:
             return JSONResponse(content={"detail" : res}, status_code=status.HTTP_202_ACCEPTED)
         
     except FileNotFoundError:
+        session.rollback()
         return JSONResponse(content={"ERROR" : "can't get problem"}, status_code=status.HTTP_404_NOT_FOUND)
     except HTTPException as he:
+        session.rollback()
         return he
+    finally:
+        session.close()
 
 
 @app.get("/api2/question/{problem_id}")
