@@ -48,7 +48,7 @@ async def get_info(current_user: dict = Depends(decode_token)):
 
 # 코드 제출 엔드포인트
 @app.post("/api2/submit/{problem_id}")
-async def submit_code(request: Request, problem_id: int, userinfo: dict = Depends(decode_token)):
+async def submit_code(request: Request, problem_id: int):
     """submit c code
 
     Args:
@@ -61,7 +61,8 @@ async def submit_code(request: Request, problem_id: int, userinfo: dict = Depend
     Returns:
         _type_: _description_
     """
-    user = userinfo["memberEmail"]
+    auth = request.cookies.get("Authorization").split("=")[1]
+    user = auth["memberEmail"]
     file_name = f"./answerData/{user}_{problem_id}.c"
     content = await request.body()
     with open(file_name, "w") as output_file:
@@ -96,7 +97,7 @@ async def submit_code(request: Request, problem_id: int, userinfo: dict = Depend
 
 
 @app.get("/api2/question/{problem_id}")
-async def get_code(problem_id: int, userinfo: dict = Depends(decode_token)):
+async def get_code(request: Request, problem_id: int):
     """get c code
 
     Args:
@@ -106,7 +107,8 @@ async def get_code(problem_id: int, userinfo: dict = Depends(decode_token)):
     Returns:
         _dict_: {detail : c_code}
     """
-    user = userinfo["memberEmail"]
+    auth = request.cookies.get("Authorization").split("=")[1]
+    user = auth["memberEmail"]
     file_name = f"./answerData/{user}_{problem_id}.c"
     try:
         with open(file_name, 'r', encoding='UTF8') as file:
