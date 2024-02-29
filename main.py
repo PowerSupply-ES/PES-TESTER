@@ -61,12 +61,13 @@ async def submit_code(request: Request, problem_id: int):
     Returns:
         _type_: _description_
     """
-    auth = request.cookies.get("Authorization").split("=")[1]
-    user = auth["memberEmail"]
+    auth = request.cookies.get("Authorization")
+    decode_auth = jwt.decode(auth, JWT_SECRET_ENCODED, algorithms=[ALGORITHM], options={"verify_signature": False})
+    user = decode_auth["memberEmail"]
     file_name = f"./answerData/{user}_{problem_id}.c"
-    content = await request.body()
+    content = await request.json()
     with open(file_name, "w") as output_file:
-        output_file.write(content.decode())
+        output_file.write(content["code"])
     try:
         res = code_tester(file_name, problem_id)
         if res == 100:
@@ -107,8 +108,9 @@ async def get_code(request: Request, problem_id: int):
     Returns:
         _dict_: {detail : c_code}
     """
-    auth = request.cookies.get("Authorization").split("=")[1]
-    user = auth["memberEmail"]
+    auth = request.cookies.get("Authorization")
+    decode_auth = jwt.decode(auth, JWT_SECRET_ENCODED, algorithms=[ALGORITHM], options={"verify_signature": False})
+    user = decode_auth["memberEmail"]
     file_name = f"./answerData/{user}_{problem_id}.c"
     try:
         with open(file_name, 'r', encoding='UTF8') as file:
