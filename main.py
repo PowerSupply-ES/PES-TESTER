@@ -61,6 +61,7 @@ async def submit_code(request: Request, problem_id: int):
     Returns:
         _type_: _description_
     """
+    session = None
     auth = request.cookies.get("Authorization")
     decode_auth = jwt.decode(auth, JWT_SECRET_ENCODED, algorithms=[ALGORITHM], options={"verify_signature": False})
     user = decode_auth["memberEmail"]
@@ -94,24 +95,28 @@ async def submit_code(request: Request, problem_id: int):
         session.rollback()
         return he
     finally:
-        session.close()
+        if session:
+            session.close()
 
 
-@app.get("/api2/question/{problem_id}")
-async def get_code(request: Request, problem_id: int):
+@app.get("/api2/question/{answer_id}")
+async def get_code(request: Request, answer_id: int):
     """get c code
 
     Args:
-        problem_id (int): problem_id
+        answer_id (int): problem_id
         member_name (str): member_name
 
     Returns:
         _dict_: {detail : c_code}
     """
+    session = None
+    session = Session()
     auth = request.cookies.get("Authorization")
     decode_auth = jwt.decode(auth, JWT_SECRET_ENCODED, algorithms=[ALGORITHM], options={"verify_signature": False})
+    check = session.query(AnswerTable).filter_by(answer_id=answer_id).first()
     user = decode_auth["memberEmail"]
-    file_name = f"./answerData/{user}_{problem_id}.c"
+    file_name = f"./answerData/{check.member_email}_{check.problem_id}.c"
     try:
         with open(file_name, 'r', encoding='UTF8') as file:
             data = file.read()
@@ -120,7 +125,9 @@ async def get_code(request: Request, problem_id: int):
 
     except HTTPException as he:
         raise he
-
+    finally:
+        if session:
+            session.close()
 
 # 문제 타이틀
 @app.get("/api2/problemtitle/{problem_id}")
