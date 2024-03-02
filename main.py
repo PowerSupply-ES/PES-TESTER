@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException, Response, status, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from schema import Session, AnswerTable, QuestionTable, ProblemTable
+from schema import Session, manage_session, AnswerTable, QuestionTable, ProblemTable
 from tester import *
 import os
 import random
@@ -25,20 +25,14 @@ app.add_middleware(
 )
 
 
-def decode_token(token: HTTPAuthorizationCredentials = Depends(HTTPBearer())):
-    token = token.credentials
-    if not token:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="토큰이 필요합니다.")
-    
+def decode_token(request):
+    auth = request.cookies.get("Authorization")
     try:
-        decoded_token = jwt.decode(token, JWT_SECRET_ENCODED, algorithms=[ALGORITHM], options={"verify_signature": False})
-        print(token, JWT_SECRET_ENCODED, ALGORITHM)
-        print(decoded_token)
-        return decoded_token
-    except jwt.ExpiredSignatureError:
-        return JSONResponse(content={"ERROR" :"토큰이 만료되었습니다."}, status_code=status.HTTP_401_UNAUTHORIZED)
-    except jwt.DecodeError:
-        return JSONResponse(content={"ERROR" :"유효하지 않은 토큰입니다."}, status_code=status.HTTP_401_UNAUTHORIZED)
+        decode_auth = jwt.decode(auth, JWT_SECRET_ENCODED, algorithms=[ALGORITHM], options={"verify_signature": False})
+        print(decode_auth)
+        return decode_auth
+    except (KeyError, jwt.ExpiredSignatureError, jwt.DecodeError):
+        return JSONResponse(content={"ERROR": "사용자 정보가 올바르지 않습니다."}, status_code=status.HTTP_401_UNAUTHORIZED)
 
 
 @app.get("/info")
@@ -46,7 +40,6 @@ async def get_info(current_user: dict = Depends(decode_token)):
     return current_user
 
 
-# 코드 제출 엔드포인트
 @app.post("/api2/submit/{problem_id}")
 async def submit_code(request: Request, problem_id: int):
     """submit c code
@@ -62,9 +55,8 @@ async def submit_code(request: Request, problem_id: int):
         _type_: _description_
     """
     session = None
-    auth = request.cookies.get("Authorization")
-    decode_auth = jwt.decode(auth, JWT_SECRET_ENCODED, algorithms=[ALGORITHM], options={"verify_signature": False})
-    user = decode_auth["memberEmail"]
+    user = decode_token(request)["memberId"]
+    
     file_name = f"./answerData/{user}_{problem_id}.c"
     content = await request.json()
     with open(file_name, "w") as output_file:
@@ -72,25 +64,24 @@ async def submit_code(request: Request, problem_id: int):
     try:
         res = code_tester(file_name, problem_id)
         if res == 100:
-            session = Session()
             check = session.query(AnswerTable).filter_by(problem_id=problem_id, member_email=user).first()
             if not check:
                 questions = session.query(QuestionTable).filter_by(problem_id=problem_id).all()
                 choices = random.sample(questions, 2)
-                addanswer = AnswerTable(member_email=user, problem_id=problem_id, 
+                addanswer = AnswerTable(member_email=user, problem_id=problem_id, answer_state="question",
                                             question_fst=choices[0].question_id, question_sec=choices[1].question_id, 
                                             final_score=10) # 임시로 10점
                 session.add(addanswer)
                 session.commit()
             answerid = session.query(AnswerTable).filter_by(problem_id=problem_id).first().answer_id
             
-            return JSONResponse(content={"answerid": answerid, "detail" : res}, status_code=status.HTTP_201_CREATED)
+            return JSONResponse(content={"answerid": answerid, "detail": res}, status_code=status.HTTP_201_CREATED)
         else:
-            return JSONResponse(content={"detail" : res}, status_code=status.HTTP_202_ACCEPTED)
+            return JSONResponse(content={"detail": res}, status_code=status.HTTP_202_ACCEPTED)
         
     except FileNotFoundError:
         session.rollback()
-        return JSONResponse(content={"ERROR" : "can't get problem"}, status_code=status.HTTP_404_NOT_FOUND)
+        return JSONResponse(content={"ERROR": "can't get problem"}, status_code=status.HTTP_404_NOT_FOUND)
     except HTTPException as he:
         session.rollback()
         return he
@@ -112,11 +103,9 @@ async def get_code(request: Request, answer_id: int):
     """
     session = None
     session = Session()
-    auth = request.cookies.get("Authorization")
-    decode_auth = jwt.decode(auth, JWT_SECRET_ENCODED, algorithms=[ALGORITHM], options={"verify_signature": False})
+    user = decode_token(request)["memberId"]    
     check = session.query(AnswerTable).filter_by(answer_id=answer_id).first()
-    user = decode_auth["memberEmail"]
-    file_name = f"./answerData/{check.member_email}_{check.problem_id}.c"
+    file_name = f"./answerData/{check.member_id}_{check.problem_id}.c"
     try:
         with open(file_name, 'r', encoding='UTF8') as file:
             data = file.read()
@@ -140,10 +129,14 @@ async def read_main(problem_id: int):
     Returns:
         _dict_: {problemId, problemTitle, problemScore}
     """
+    session = None
     session = Session()
-    prob = session.query(ProblemTable).filter_by(problem_id={problem_id}).first()
+    prob = session.query(ProblemTable).filter_by(problem_id=problem_id).first()
     session.close()
-    return {"problemId" :problem_id, "problemTitle" : prob.problem_title, "problemScore" : prob.problem_score}
+    if prob is None:
+        raise HTTPException(status_code=404, detail="Problem not found")
+    return {"problemId": problem_id, "problemTitle": prob.problem_title, "problemScore": prob.problem_score}
+
 
 
 # 문제 보기

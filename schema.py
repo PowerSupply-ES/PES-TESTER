@@ -1,5 +1,5 @@
-from sqlalchemy import create_engine, Column, DateTime, String, Integer, ForeignKey, func
-from sqlalchemy.orm import relationship, sessionmaker
+from sqlalchemy import create_engine, Column, DateTime, String, Integer, ForeignKey, func, BigInteger
+from sqlalchemy.orm import relationship, sessionmaker, Session
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.exc import SQLAlchemyError
 import os
@@ -10,14 +10,23 @@ engin = create_engine(DATABASE_URL)
 Session = sessionmaker(bind=engin)
 Base = declarative_base()
 
+def manage_session(func):
+    async def wrapper(*args, **kwargs):
+        session = Session()
+        try:
+            result = await func(*args, session=session, **kwargs)
+        finally:
+            session.close()
+        return result
+    return wrapper
 
 class MemberTable(Base):
     __tablename__ = 'member_table'
 
-    member_email = Column(String(255), primary_key=True)
+    member_id = Column(String(255), primary_key=True)
     created_time = Column(DateTime, default=func.now())
     updated_time = Column(DateTime, default=func.now(), onupdate=func.now())
-    member_beak_id = Column(String(255))
+    member_email = Column(String(255), unique=True)
     member_gen = Column(Integer)
     member_major = Column(String(255))
     member_name = Column(String(255))
@@ -32,17 +41,17 @@ class MemberTable(Base):
 class AnswerTable(Base):
     __tablename__ = 'answer_table'
 
-    answer_id = Column(Integer, primary_key=True, autoincrement=True)
+    answer_id = Column(BigInteger, primary_key=True, autoincrement=True)
     created_time = Column(DateTime, default=func.now())
     updated_time = Column(DateTime, default=func.now(), onupdate=func.now())
     answer_fst = Column(String(255))
     answer_sec = Column(String(255))
     answer_state = Column(String(255))
     final_score = Column(Integer, nullable=False)
-    member_email = Column(String(255), ForeignKey('member_table.member_email'))
-    problem_id = Column(Integer, ForeignKey('problem_table.problem_id'))
-    question_fst = Column(Integer, ForeignKey('question_table.question_id'))
-    question_sec = Column(Integer, ForeignKey('question_table.question_id'))
+    member_id = Column(String(255), ForeignKey('member_table.member_id'))
+    problem_id = Column(BigInteger, ForeignKey('problem_table.problem_id'))
+    question_fst = Column(BigInteger, ForeignKey('question_table.question_id'))
+    question_sec = Column(BigInteger, ForeignKey('question_table.question_id'))
 
     member = relationship("MemberTable", back_populates="answers")
     problem = relationship("ProblemTable", back_populates="answers")
@@ -54,13 +63,13 @@ class AnswerTable(Base):
 class CommentTable(Base):
     __tablename__ = 'comment_table'
 
-    comment_id = Column(Integer, primary_key=True, autoincrement=True)
+    comment_id = Column(BigInteger, primary_key=True, autoincrement=True)
     created_time = Column(DateTime, default=func.now())
     updated_time = Column(DateTime, default=func.now(), onupdate=func.now())
     comment_content = Column(String(255))
     comment_pass_fail = Column(Integer, nullable=False)
-    answer_id = Column(Integer, ForeignKey('answer_table.answer_id'))
-    member_email = Column(String(255), ForeignKey('member_table.member_email'))
+    answer_id = Column(BigInteger, ForeignKey('answer_table.answer_id'))
+    member_id = Column(String(255), ForeignKey('member_table.member_id'))
 
     answer = relationship("AnswerTable", back_populates="comments")
     member = relationship("MemberTable", back_populates="comments")
