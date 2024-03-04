@@ -134,7 +134,9 @@ def code_tester(c_file_path, prob_id):
             actual_output = compile_main(lib_path, input_data, check)
             #print("<result>\n", input_data, output_data, actual_output,)
             if output_data.rstrip() != actual_output:
+                os.remove(lib_path)
                 return int(idx / count * 100)
+        os.remove(lib_path)
         return 100
 
     else: # compile function
@@ -145,8 +147,9 @@ def code_tester(c_file_path, prob_id):
             actual_output = compile_func(lib_path, input_data)
             #print("<result>\n", input_data, output_data, actual_output)
             if output_data.rstrip() != actual_output:
+                os.remove(lib_path)
                 return int(idx / count * 100)
-
+        os.remove(lib_path)
         return 100
     
 if __name__ == "__main__":

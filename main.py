@@ -29,10 +29,9 @@ def decode_token(request):
     auth = request.cookies.get("Authorization")
     try:
         decode_auth = jwt.decode(auth, JWT_SECRET_ENCODED, algorithms=[ALGORITHM], options={"verify_signature": False})
-        print(decode_auth)
         return decode_auth
     except (KeyError, jwt.ExpiredSignatureError, jwt.DecodeError):
-        return JSONResponse(content={"ERROR": "사용자 정보가 올바르지 않습니다."}, status_code=status.HTTP_401_UNAUTHORIZED)
+        return HTTPException(content={"ERROR": "사용자 정보가 올바르지 않습니다."}, status_code=status.HTTP_401_UNAUTHORIZED)
 
 
 @app.get("/info")
@@ -63,12 +62,13 @@ async def submit_code(request: Request, problem_id: int):
         output_file.write(content["code"])
     try:
         res = code_tester(file_name, problem_id)
+        session = Session()
         if res == 100:
-            check = session.query(AnswerTable).filter_by(problem_id=problem_id, member_email=user).first()
+            check = session.query(AnswerTable).filter_by(problem_id=problem_id, member_id=user).first()
             if not check:
                 questions = session.query(QuestionTable).filter_by(problem_id=problem_id).all()
                 choices = random.sample(questions, 2)
-                addanswer = AnswerTable(member_email=user, problem_id=problem_id, answer_state="question",
+                addanswer = AnswerTable(member_id=user, problem_id=problem_id, answer_state="question",
                                             question_fst=choices[0].question_id, question_sec=choices[1].question_id, 
                                             final_score=10) # 임시로 10점
                 session.add(addanswer)
