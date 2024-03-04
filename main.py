@@ -75,7 +75,7 @@ async def submit_code(request: Request, problem_id: int):
                 session.commit()
             answerid = session.query(AnswerTable).filter_by(problem_id=problem_id).first().answer_id
             
-            return JSONResponse(content={"answerid": answerid, "detail": res}, status_code=status.HTTP_201_CREATED)
+            return JSONResponse(content={"answer_id": answerid, "detail": res}, status_code=status.HTTP_201_CREATED)
         else:
             return JSONResponse(content={"detail": res}, status_code=status.HTTP_202_ACCEPTED)
         
