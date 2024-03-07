@@ -73,7 +73,7 @@ async def submit_code(request: Request, problem_id: int):
                                             final_score=10) # 임시로 10점
                 session.add(addanswer)
                 session.commit()
-            answerid = session.query(AnswerTable).filter_by(problem_id=problem_id).first().answer_id
+            answerid = session.query(AnswerTable).filter_by(problem_id=problem_id, member_id=user).first().answer_id
             
             return JSONResponse(content={"answer_id": answerid, "detail": res}, status_code=status.HTTP_201_CREATED)
         else:
