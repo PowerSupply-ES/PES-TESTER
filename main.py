@@ -58,6 +58,9 @@ async def submit_code(request: Request, problem_id: int):
     
     file_name = f"./answerData/{user}_{problem_id}.c"
     content = await request.json()
+    if content["code"][0] != "#" or content["code"][-1] != "}":
+        return JSONResponse(content={"detail": "WARN : It's not a C code. I can't compile it!"}, status_code=status.HTTP_202_ACCEPTED)
+
     with open(file_name, "w") as output_file:
         output_file.write(content["code"])
     try:
@@ -119,6 +122,7 @@ async def get_code(request: Request, answer_id: int):
             session.close()
 
 # 문제 타이틀
+'''
 @app.get("/api2/problemtitle/{problem_id}")
 async def read_main(problem_id: int):
     """get problem title
@@ -136,7 +140,7 @@ async def read_main(problem_id: int):
     if prob is None:
         raise HTTPException(status_code=404, detail="Problem not found")
     return {"problemId": problem_id, "problemTitle": prob.problem_title, "problemScore": prob.problem_score}
-
+'''
 
 
 # 문제 보기
@@ -165,5 +169,3 @@ async def read_main(problem_id: int):
 
 if __name__ == "__main__":
     import uvicorn
-
-    uvicorn.run(app, host="0.0.0.0", port=8000)

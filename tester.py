@@ -1,4 +1,5 @@
 import os
+import re
 import uuid
 import subprocess
     
@@ -128,12 +129,19 @@ def code_tester(c_file_path, prob_id):
 
     if check < 3: # compile main
         #print("COMPILE MAIN")
-        subprocess.run(['gcc', c_file_path, '-o', lib_path], stdout=subprocess.PIPE, timeout=2)
+        result = subprocess.run(['gcc', c_file_path, '-o', lib_path], stderr=subprocess.PIPE, timeout=2)
+        
+        stderr = result.stderr
+        if stderr != "":
+            if "No such file or directory" in stderr.decode('utf-8'):
+                return "WARN : it's a wrong code. I can't compile it."
+            return re.sub(r'\./[^:]+:', '\n\n', stderr.decode('utf-8'))
+
         for idx, (input_data, output_data) in enumerate(zip(prob[2], prob[3])):
             
             actual_output = compile_main(lib_path, input_data, check)
-            #print("<result>\n", input_data, output_data, actual_output,)
-            if output_data.rstrip() != actual_output:
+            print("<result_main>\n", input_data, output_data, actual_output,)
+            if output_data.rstrip() != actual_output.rstrip():
                 os.remove(lib_path)
                 return int(idx / count * 100)
         os.remove(lib_path)
@@ -141,21 +149,26 @@ def code_tester(c_file_path, prob_id):
 
     else: # compile function
         #print("COMPILE FUNC")
-        subprocess.run(['gcc', '-o', lib_path, "-I", "problems", c_file_path, f"./problems/main{prob_id}.c", "./problems/pes.h"], stdout=subprocess.PIPE, timeout=2)
+        result = subprocess.run(['gcc', '-o', lib_path, "-I", "problems", c_file_path, f"./problems/main{prob_id}.c", "./problems/pes.h"], stderr=subprocess.PIPE, timeout=2)
+        
+        stderr = result.stderr
+        if stderr != "":
+            if "No such file or directory" in stderr.decode('utf-8'):
+                return "WARN : it's a wrong code. I can't compile it."
+            return re.sub(r'\./[^:]+:', '\n\n', stderr.decode('utf-8'))
+
         for idx, (input_data, output_data) in enumerate(zip(prob[2], prob[3])):
             
             actual_output = compile_func(lib_path, input_data)
-            #print("<result>\n", input_data, output_data, actual_output)
-            if output_data.rstrip() != actual_output:
+            print("<result_func>\n", input_data, output_data, actual_output)
+            if output_data.rstrip() != actual_output.rstrip():
                 os.remove(lib_path)
                 return int(idx / count * 100)
         os.remove(lib_path)
         return 100
     
 if __name__ == "__main__":
-    print(code_tester("./answerData/3.c", 3))
-        
-
+    print(code_tester("./problems/prob12.c", 12))
 
 
 
