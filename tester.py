@@ -132,7 +132,7 @@ def code_tester(c_file_path, prob_id):
         result = subprocess.run(['gcc', c_file_path, '-o', lib_path], stderr=subprocess.PIPE, timeout=2)
         
         stderr = result.stderr
-        if stderr != "":
+        if stderr != b"":
             if "No such file or directory" in stderr.decode('utf-8'):
                 return "WARN : it's a wrong code. I can't compile it."
             return re.sub(r'\./[^:]+:', '\n\n', stderr.decode('utf-8'))
@@ -152,7 +152,7 @@ def code_tester(c_file_path, prob_id):
         result = subprocess.run(['gcc', '-o', lib_path, "-I", "problems", c_file_path, f"./problems/main{prob_id}.c", "./problems/pes.h"], stderr=subprocess.PIPE, timeout=2)
         
         stderr = result.stderr
-        if stderr != "":
+        if stderr != b"":
             if "No such file or directory" in stderr.decode('utf-8'):
                 return "WARN : it's a wrong code. I can't compile it."
             return re.sub(r'\./[^:]+:', '\n\n', stderr.decode('utf-8'))
