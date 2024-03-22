@@ -58,7 +58,7 @@ async def submit_code(request: Request, problem_id: int):
     
     file_name = f"./answerData/{user}_{problem_id}.c"
     content = await request.json()
-    if content["code"][0] != "#" or content["code"][-1] != "}":
+    if content["code"][0] != "#" or content["code"].rstrip()[-1] != "}":
         return JSONResponse(content={"detail": "WARN : It's not a C code. I can't compile it!"}, status_code=status.HTTP_202_ACCEPTED)
 
     with open(file_name, "w") as output_file:
