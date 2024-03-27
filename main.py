@@ -73,7 +73,7 @@ async def submit_code(request: Request, problem_id: int):
                 choices = random.sample(questions, 2)
                 addanswer = AnswerTable(member_id=user, problem_id=problem_id, answer_state="question",
                                             question_fst=choices[0].question_id, question_sec=choices[1].question_id, 
-                                            final_score=10) # 임시로 10점
+                                            final_score=0) # 임시로 0점
                 session.add(addanswer)
                 session.commit()
             answerid = session.query(AnswerTable).filter_by(problem_id=problem_id, member_id=user).first().answer_id

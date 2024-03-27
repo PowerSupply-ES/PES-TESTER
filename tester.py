@@ -143,7 +143,8 @@ def code_tester(c_file_path, prob_id):
             print("<result_main>\n", input_data, output_data, actual_output,)
             if output_data.rstrip() != actual_output.rstrip():
                 os.remove(lib_path)
-                return int(idx / count * 100)
+                score = int(idx / count * 100)
+                return f"{score}점 입니다! 테스트케이스를 다시 확인하고 풀어주세요.ㅠㅠ"
         os.remove(lib_path)
         return 100
 
