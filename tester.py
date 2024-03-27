@@ -168,7 +168,7 @@ def code_tester(c_file_path, prob_id):
         return 100
     
 if __name__ == "__main__":
-    print(code_tester("./problems/prob12.c", 12))
+    print(code_tester("./problems/prob61.c", 61))
 
 
 
