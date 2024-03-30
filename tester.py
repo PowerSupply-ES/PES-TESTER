@@ -90,21 +90,15 @@ def compile_main(cdata, inputs, check):
     """
     try:
         if check == 1:              # main + scanf
-
-            p = subprocess.Popen(cdata, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
-            p.stdin.write(inputs.encode("utf-8"))
-            p.stdin.flush()
-            res = p.stdout.read().decode("utf-8")
-            p.terminate()
-            
+            p = subprocess.run(cdata, input=inputs, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=2)
             if p.returncode != 0:   # return ERROR
                 return p.stderr
 
-            return res              # return result
+            return p.stdout         # return result
         
         else: # main
             p = subprocess.run([cdata], capture_output=True, text=True,  timeout=2)
-            return p.stdout.strip() # return result
+            return p.stdout # return result
         
     except Exception as e:          # return ERROR
         return "HARD ERROR :" + str(e)
@@ -169,7 +163,7 @@ def code_tester(c_file_path, prob_id):
         return 100
     
 if __name__ == "__main__":
-    print(code_tester("./problems/prob61.c", 61))
+    print(code_tester("./problems/prob99.c", 99))
 
 
 
